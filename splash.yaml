@@ -1,0 +1,7 @@
+flutter_native_splash:
+  color: '#26A69A'
+  image: assets/chat3.png
+
+  android_12:
+    color: '#26A69A'
+    image: assets/chat3.png

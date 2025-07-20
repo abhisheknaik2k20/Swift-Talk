@@ -14,8 +14,12 @@
       },
       "oauth_client": [
         {
-          "client_id": "53607531902-2jv8dt9u9r5rcc8atfead9vfojdn1vlk.apps.googleusercontent.com",
-          "client_type": 3
+          "client_id": "53607531902-bil431vvoofo096e1g11khrbg8r4ti5c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.myprojectapp.projectx",
+            "certificate_hash": "be3a003db3473e25a6a2fb7d3c682b7e6b45429d"
+          }
         }
       ],
       "api_key": [
@@ -25,19 +29,7 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "53607531902-2jv8dt9u9r5rcc8atfead9vfojdn1vlk.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "53607531902-1orcrn5fk6bjuimlplqjv4q1ihc1h9et.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.myprojectapp.projectx"
-              }
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
