@@ -3,6 +3,7 @@ import 'package:SwiftTalk/CONTROLLER/Login_Logic.dart';
 import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
 import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
 import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
+import 'package:SwiftTalk/CONTROLLER/MessageEncryptionHelper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -58,6 +59,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
   await NotificationService.initialize();
+
+  // Initialize encryption for authenticated users
+  if (FirebaseAuth.instance.currentUser != null) {
+    await MessageEncryptionHelper.initializeUserEncryption();
+  }
+
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await FirebaseMessaging.instance.requestPermission(
       alert: true,

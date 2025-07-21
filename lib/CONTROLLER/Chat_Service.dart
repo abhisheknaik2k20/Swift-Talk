@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
 import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
+import 'package:SwiftTalk/CONTROLLER/MessageEncryptionHelper.dart';
 import 'package:SwiftTalk/MODELS/Community.dart';
 import 'package:SwiftTalk/MODELS/Message.dart';
 import 'package:SwiftTalk/MODELS/Notification.dart';
@@ -143,6 +144,66 @@ class ChatService extends ChangeNotifier {
             "Call from ${FirebaseAuth.instance.currentUser?.displayName ?? ''}",
         type: 'VideoCall');
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyHomePage()));
+  }
+
+  // New method for sending encrypted messages
+  Future<void> SendEncryptedMessage(
+      {required String messageText,
+      required String receiverId,
+      String type = 'text'}) async {
+    try {
+      final encryptedMessage =
+          await MessageEncryptionHelper.createEncryptedMessage(
+        messageText: messageText,
+        receiverId: receiverId,
+        type: type,
+      );
+
+      await SendMessage(message: encryptedMessage);
+    } catch (e) {
+      print('Error sending encrypted message: $e');
+      // Fallback to regular message
+      final fallbackMessage = Message(
+        senderName: _auth.currentUser?.displayName ?? '',
+        senderId: _auth.currentUser!.uid,
+        senderEmail: _auth.currentUser?.email ?? '',
+        receiverId: receiverId,
+        message: messageText,
+        timestamp: Timestamp.now(),
+        type: type,
+      );
+      await SendMessage(message: fallbackMessage);
+    }
+  }
+
+  // New method for sending encrypted community messages
+  Future<void> sendEncryptedCommunityMessage(
+      {required String messageText,
+      required Community community,
+      String type = 'text'}) async {
+    try {
+      final encryptedMessage =
+          await MessageEncryptionHelper.createEncryptedCommunityMessage(
+        messageText: messageText,
+        communityId: community.id,
+        type: type,
+      );
+
+      await sendCommunityMessage(encryptedMessage, community);
+    } catch (e) {
+      print('Error sending encrypted community message: $e');
+      // Fallback to regular message
+      final fallbackMessage = Message(
+        senderName: _auth.currentUser?.displayName ?? '',
+        senderId: _auth.currentUser!.uid,
+        senderEmail: _auth.currentUser?.email ?? '',
+        receiverId: community.id,
+        message: messageText,
+        timestamp: Timestamp.now(),
+        type: type,
+      );
+      await sendCommunityMessage(fallbackMessage, community);
+    }
   }
 }
 

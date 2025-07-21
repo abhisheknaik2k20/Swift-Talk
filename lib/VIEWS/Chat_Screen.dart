@@ -233,26 +233,19 @@ class _ChatPageContentState extends State<ChatPageContent> {
     }
     _messageController.clear();
     if (widget.community == null) {
-      await _chatService.SendMessage(
-          message: Message(
-              senderName: _auth.currentUser?.displayName ?? '',
-              senderId: _auth.currentUser!.uid,
-              senderEmail: _auth.currentUser?.email ?? '',
-              receiverId: widget.reciever.uid,
-              message: textmessage,
-              timestamp: Timestamp.now(),
-              type: "text"));
+      // Send encrypted direct message
+      await _chatService.SendEncryptedMessage(
+        messageText: textmessage,
+        receiverId: widget.reciever.uid,
+        type: "text",
+      );
     } else {
-      await _chatService.sendCommunityMessage(
-          Message(
-              senderName: _auth.currentUser?.displayName ?? '',
-              senderId: _auth.currentUser!.uid,
-              senderEmail: _auth.currentUser?.email ?? '',
-              receiverId: widget.community!.id,
-              message: textmessage,
-              timestamp: Timestamp.now(),
-              type: "text"),
-          widget.community!);
+      // Send encrypted community message
+      await _chatService.sendEncryptedCommunityMessage(
+        messageText: textmessage,
+        community: widget.community!,
+        type: "text",
+      );
     }
   }
 
@@ -576,10 +569,12 @@ class WhatsAppMessageList extends StatelessWidget {
                         child: snapshot.data![index].runtimeType == FileMessage
                             ? FileMessageBubble(
                                 message: snapshot.data![index],
-                                chatRoomID: chatroomid)
+                                chatRoomID: chatroomid,
+                                communityId: community?.id)
                             : MessageBubble(
                                 message: snapshot.data![index],
-                                chatRoomID: chatroomid)));
+                                chatRoomID: chatroomid,
+                                communityId: community?.id)));
               });
         });
   }

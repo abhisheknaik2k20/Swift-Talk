@@ -1,5 +1,6 @@
 import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
 import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
+import 'package:SwiftTalk/CONTROLLER/MessageEncryptionHelper.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
@@ -67,8 +68,13 @@ final Map<String, List> mediaConfig = {
 class MessageBubble extends StatelessWidget {
   final Message message;
   final String chatRoomID;
+  final String? communityId;
+
   const MessageBubble(
-      {required this.chatRoomID, required this.message, super.key});
+      {required this.chatRoomID,
+      required this.message,
+      this.communityId,
+      super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -136,9 +142,24 @@ class MessageBubble extends StatelessWidget {
                             const SizedBox(height: 4),
                             Align(
                                 alignment: Alignment.bottomRight,
-                                child: Text(formattedTime,
-                                    style: TextStyle(
-                                        fontSize: 12, color: timeColor)))
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (message.isEncrypted)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 4),
+                                        child: Icon(
+                                          Icons.lock,
+                                          size: 12,
+                                          color: timeColor,
+                                        ),
+                                      ),
+                                    Text(formattedTime,
+                                        style: TextStyle(
+                                            fontSize: 12, color: timeColor)),
+                                  ],
+                                ))
                           ]))
                 ])));
   }
@@ -150,8 +171,69 @@ class MessageBubble extends StatelessWidget {
         return Text(message.message,
             style: TextStyle(fontSize: 16, color: deletedTextColor));
       case _:
-        return Text(message.message,
-            style: TextStyle(fontSize: 16, color: textColor));
+        // Handle encrypted messages
+        if (message.isEncrypted) {
+          return FutureBuilder<String>(
+            future: MessageEncryptionHelper.getDecryptedMessageText(
+              message,
+              communityId: communityId,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Decrypting...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor.withOpacity(0.7),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                );
+              } else if (snapshot.hasError) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lock,
+                      size: 16,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Failed to decrypt',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.red,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Text(
+                  snapshot.data ?? '[Decryption failed]',
+                  style: TextStyle(fontSize: 16, color: textColor),
+                );
+              }
+            },
+          );
+        } else {
+          return Text(message.message,
+              style: TextStyle(fontSize: 16, color: textColor));
+        }
     }
   }
 
@@ -213,9 +295,25 @@ class MessageBubble extends StatelessWidget {
                             () => Navigator.pop(context),
                             Colors.blue[700]!,
                           ),
-                          _whatsappActionButton(Icons.content_copy, "Copy", () {
-                            Clipboard.setData(
-                                ClipboardData(text: message.message));
+                          _whatsappActionButton(Icons.content_copy, "Copy",
+                              () async {
+                            String textToCopy = message.message;
+
+                            // If message is encrypted, decrypt it first
+                            if (message.isEncrypted &&
+                                message.encryptedData != null) {
+                              try {
+                                textToCopy = await MessageEncryptionHelper
+                                    .getDecryptedMessageText(
+                                  message,
+                                  communityId: communityId,
+                                );
+                              } catch (e) {
+                                textToCopy = '[Failed to decrypt message]';
+                              }
+                            }
+
+                            Clipboard.setData(ClipboardData(text: textToCopy));
                             Navigator.pop(context);
                           }, Colors.orange[700]!),
                           if (isCurrentUser)
@@ -287,8 +385,13 @@ class MessageBubble extends StatelessWidget {
 class FileMessageBubble extends StatelessWidget {
   final FileMessage message;
   final String chatRoomID;
+  final String? communityId;
+
   const FileMessageBubble(
-      {required this.chatRoomID, required this.message, super.key});
+      {required this.chatRoomID,
+      required this.message,
+      this.communityId,
+      super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -361,9 +464,24 @@ class FileMessageBubble extends StatelessWidget {
                             const SizedBox(height: 4),
                             Align(
                                 alignment: Alignment.bottomRight,
-                                child: Text(formattedTime,
-                                    style: TextStyle(
-                                        fontSize: 10, color: timeColor)))
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (message.isEncrypted)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 4),
+                                        child: Icon(
+                                          Icons.lock,
+                                          size: 10,
+                                          color: timeColor,
+                                        ),
+                                      ),
+                                    Text(formattedTime,
+                                        style: TextStyle(
+                                            fontSize: 10, color: timeColor)),
+                                  ],
+                                ))
                           ]))
                 ])));
   }

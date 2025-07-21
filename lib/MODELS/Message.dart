@@ -11,6 +11,8 @@ class Message {
   final String message;
   final Timestamp timestamp;
   final String type;
+  final bool isEncrypted;
+  final Map<String, String>? encryptedData;
 
   Message(
       {this.id,
@@ -20,7 +22,9 @@ class Message {
       required this.receiverId,
       required this.message,
       required this.timestamp,
-      required this.type});
+      required this.type,
+      this.isEncrypted = false,
+      this.encryptedData});
 
   factory Message.fromMap(Map<String, dynamic> map, String docId) {
     return Message(
@@ -31,7 +35,11 @@ class Message {
         receiverId: map['reciverId'] ?? '',
         message: map['message'] ?? '',
         timestamp: map['timestamp'],
-        type: map['type'] ?? 'text');
+        type: map['type'] ?? 'text',
+        isEncrypted: map['isEncrypted'] ?? false,
+        encryptedData: map['encryptedData'] != null
+            ? Map<String, String>.from(map['encryptedData'])
+            : null);
   }
 
   Map<String, dynamic> toMap() {
@@ -42,7 +50,9 @@ class Message {
       'reciverId': receiverId,
       'message': message,
       'timestamp': timestamp,
-      'type': type
+      'type': type,
+      'isEncrypted': isEncrypted,
+      'encryptedData': encryptedData,
     };
   }
 
@@ -54,7 +64,9 @@ class Message {
       String? receiverId,
       String? message,
       Timestamp? timestamp,
-      String? type}) {
+      String? type,
+      bool? isEncrypted,
+      Map<String, String>? encryptedData}) {
     return Message(
         id: id ?? this.id,
         senderName: senderName ?? this.senderName,
@@ -63,7 +75,9 @@ class Message {
         receiverId: receiverId ?? this.receiverId,
         message: message ?? this.message,
         timestamp: timestamp ?? this.timestamp,
-        type: type ?? this.type);
+        type: type ?? this.type,
+        isEncrypted: isEncrypted ?? this.isEncrypted,
+        encryptedData: encryptedData ?? this.encryptedData);
   }
 }
 
@@ -81,7 +95,9 @@ class FileMessage extends Message {
       required super.timestamp,
       required this.filename,
       required super.type,
-      this.fileSize = 0});
+      this.fileSize = 0,
+      super.isEncrypted = false,
+      super.encryptedData});
 
   factory FileMessage.fromMap(Map<String, dynamic> map, String docId) {
     return FileMessage(
@@ -94,7 +110,11 @@ class FileMessage extends Message {
         timestamp: map['timestamp'],
         filename: map['filename'] ?? '',
         type: map['type'],
-        fileSize: map['fileSize'] ?? 0);
+        fileSize: map['fileSize'] ?? 0,
+        isEncrypted: map['isEncrypted'] ?? false,
+        encryptedData: map['encryptedData'] != null
+            ? Map<String, String>.from(map['encryptedData'])
+            : null);
   }
 
   @override
