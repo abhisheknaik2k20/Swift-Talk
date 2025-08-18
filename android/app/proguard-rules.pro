@@ -21,3 +21,21 @@
 ## Flutter WebRTC
 -keep class com.cloudwebrtc.webrtc.** { *; }
 -keep class org.webrtc.** { *; } 
+
+
+# Keep TensorFlow Lite classes
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-dontwarn org.tensorflow.lite.gpu.GpuDelegateFactory$Options
+
+# Keep TensorFlow Lite Select TF Ops classes
+-keep class org.tensorflow.** { *; }
+-dontwarn org.tensorflow.**
+
+# Keep tflite_flutter plugin classes
+-keep class io.flutter.plugins.tflite.** { *; }
+
+# Keep native methods
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
