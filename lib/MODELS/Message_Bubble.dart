@@ -836,7 +836,7 @@ class _EnhancedMessageBubbleState extends State<EnhancedMessageBubble> {
             if (_sentimentResult != null)
               _buildAnalysisRow(
                 'Sentiment',
-                _sentimentResult!.label,
+                correctLabels[_sentimentResult!.label] ?? '',
                 _sentimentResult!.confidence,
                 _getSentimentColor(_sentimentResult!.label),
                 isDarkMode,
@@ -844,7 +844,7 @@ class _EnhancedMessageBubbleState extends State<EnhancedMessageBubble> {
             if (_spamResult != null)
               _buildAnalysisRow(
                 'Spam Detection',
-                _spamResult!.label,
+                correctLabels[_spamResult!.label] ?? '',
                 _spamResult!.confidence,
                 _getSpamColor(_spamResult!.label),
                 isDarkMode,
@@ -852,7 +852,7 @@ class _EnhancedMessageBubbleState extends State<EnhancedMessageBubble> {
             if (_grammaticalResult != null)
               _buildAnalysisRow(
                 'Grammar',
-                _grammaticalResult!.label,
+                correctLabels[_grammaticalResult!.label] ?? '',
                 _grammaticalResult!.confidence,
                 _getGrammarColor(_grammaticalResult!.label),
                 isDarkMode,

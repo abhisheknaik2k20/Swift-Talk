@@ -15,6 +15,16 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+Map<String, String> realtimeLabel = {
+  "grammatical": "Grammatical",
+  "ungrammatical": "Un-Grammatical",
+  "negative": "Negative",
+  "neutral": "Neutral",
+  "positive": "Positive",
+  "ham": "Non-Spam",
+  "spam": "Spam",
+};
+
 class WhatsAppChatAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   final UserModel reciever;
@@ -571,7 +581,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
         border: Border.all(color: chipColor.withOpacity(0.4)),
       ),
       child: Text(
-        '${result.modelType.name}: ${result.label}',
+        '${result.modelType.name}: ${realtimeLabel[result.label]}',
         style: TextStyle(
           color: chipColor,
           fontSize: 10,
@@ -772,7 +782,6 @@ class WhatsAppMessageList extends StatelessWidget {
       bool nlpInitialized) async {
     TextEditingController textController = TextEditingController();
     textController.text = document['message'] ?? '';
-
     await showGeneralDialog(
         context: context,
         barrierDismissible: true,
