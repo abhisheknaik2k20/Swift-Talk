@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:SwiftTalk/VIEWS/WebRTC.dart';
+import 'package:swift_talk/VIEWS/WebRTC.dart';
 import 'package:vibration/vibration.dart';
 
 class CallScreen extends StatefulWidget {

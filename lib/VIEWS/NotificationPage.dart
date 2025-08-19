@@ -1,8 +1,8 @@
-import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
-import 'package:SwiftTalk/MODELS/Notification.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
-import 'package:SwiftTalk/VIEWS/Chat_Screen.dart';
+import 'package:swift_talk/CONTROLLER/Native_Implement.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/MODELS/Notification.dart';
+import 'package:swift_talk/MODELS/User.dart';
+import 'package:swift_talk/VIEWS/Chat_Screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 

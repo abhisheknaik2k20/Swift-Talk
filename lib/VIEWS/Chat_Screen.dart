@@ -1,14 +1,15 @@
 import 'dart:io';
-import 'package:SwiftTalk/CONTROLLER/Call_Provider.dart';
-import 'package:SwiftTalk/MODELS/Community.dart';
-import 'package:SwiftTalk/MODELS/Message.dart';
-import 'package:SwiftTalk/MODELS/Message_Bubble.dart';
-import 'package:SwiftTalk/VIEWS/Call_Screen.dart';
-import 'package:SwiftTalk/VIEWS/Profile.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
+import 'package:swift_talk/CONTROLLER/Call_Provider.dart';
+import 'package:swift_talk/MODELS/Community.dart';
+import 'package:swift_talk/MODELS/Message.dart';
+import 'package:swift_talk/MODELS/Message_Bubble.dart';
+import 'package:swift_talk/VIEWS/Call_Screen.dart';
+import 'package:swift_talk/VIEWS/Profile.dart';
+import 'package:swift_talk/MODELS/User.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:SwiftTalk/CONTROLLER/Chat_Service.dart';
+import 'package:swift_talk/CONTROLLER/Chat_Service.dart';
+import 'package:swift_talk/CONTROLLER/nlp_models.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -205,9 +206,11 @@ class _ChatPageContentState extends State<ChatPageContent> {
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
+  final NLPService _nlpService = NLPService.instance;
   bool startcall = false;
   bool shouldListen = false;
   bool speechEnabled = false;
+  bool _nlpInitialized = false;
   late String ChatroomID;
   final _uploadService = S3UploadService();
 
@@ -217,11 +220,29 @@ class _ChatPageContentState extends State<ChatPageContent> {
     ChatroomID = widget.community == null
         ? ([_auth.currentUser!.uid, widget.reciever.uid]..sort()).join("_")
         : widget.community!.id;
+    _initializeNLP();
+  }
+
+  Future<void> _initializeNLP() async {
+    try {
+      // Initialize all NLP models
+      await Future.wait([
+        _nlpService.initializeModel(ModelType.sentiment),
+        _nlpService.initializeModel(ModelType.spam),
+        _nlpService.initializeModel(ModelType.grammatical),
+      ]);
+      setState(() {
+        _nlpInitialized = true;
+      });
+    } catch (e) {
+      print('Error initializing NLP models: $e');
+    }
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _nlpService.dispose();
     super.dispose();
   }
 
@@ -370,43 +391,195 @@ class _ChatPageContentState extends State<ChatPageContent> {
                 chatService: _chatService,
                 context: context,
                 chatroomid: ChatroomID,
-                community: widget.community)),
+                community: widget.community,
+                nlpService: _nlpService,
+                isNlpInitialized: _nlpInitialized)),
         _buildMessageInput()
       ]);
 
-  Widget _buildMessageInput() => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      color: Colors.grey.shade900,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-        IconButton(
-            onPressed: _showAttachmentOptions,
-            icon: const Icon(Icons.add, color: Colors.grey, size: 28)),
-        Expanded(
-            child: Container(
-                constraints: const BoxConstraints(maxHeight: 140),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(5)),
-                child: TextField(
-                    controller: _messageController,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                        hintText: 'Type a message',
-                        hintStyle: TextStyle(color: Colors.grey[500]),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 15, vertical: 10)),
-                    style: const TextStyle(color: Colors.black87)))),
+  Widget _buildMessageInput() => Column(children: [
+        // Analysis indicator
+        if (_nlpInitialized && _messageController.text.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.grey.shade800,
+            child: _buildLiveAnalysis(),
+          ),
         Container(
-            margin: const EdgeInsets.only(left: 8),
-            child: GestureDetector(
-                onTap: sendMessage,
-                child: CircleAvatar(
-                    backgroundColor: Colors.teal,
-                    radius: 22,
-                    child: Icon(Icons.send, color: Colors.white, size: 22))))
-      ]));
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            color: Colors.grey.shade900,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              IconButton(
+                  onPressed: _showAttachmentOptions,
+                  icon: const Icon(Icons.add, color: Colors.grey, size: 28)),
+              Expanded(
+                  child: Container(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(5)),
+                      child: TextField(
+                          controller: _messageController,
+                          maxLines: null,
+                          keyboardType: TextInputType.multiline,
+                          onChanged: (text) {
+                            if (_nlpInitialized) {
+                              setState(
+                                  () {}); // Trigger rebuild to show/hide analysis
+                            }
+                          },
+                          decoration: InputDecoration(
+                              hintText: 'Type a message',
+                              hintStyle: TextStyle(color: Colors.grey[500]),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 15, vertical: 10)),
+                          style: const TextStyle(color: Colors.black87)))),
+              Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  child: GestureDetector(
+                      onTap: sendMessage,
+                      child: CircleAvatar(
+                          backgroundColor: Colors.teal,
+                          radius: 22,
+                          child:
+                              Icon(Icons.send, color: Colors.white, size: 22))))
+            ])),
+      ]);
+
+  Widget _buildLiveAnalysis() {
+    return FutureBuilder<List<NLPResult>>(
+      future: _performLiveAnalysis(_messageController.text),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Analyzing...',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
+
+        final results = snapshot.data!;
+        return Row(
+          children: [
+            Icon(Icons.analytics, size: 16, color: Colors.blue),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                children: results
+                    .map((result) => _buildLiveResultChip(result))
+                    .toList(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<List<NLPResult>> _performLiveAnalysis(String text) async {
+    if (!_nlpInitialized || text.trim().isEmpty) {
+      return [];
+    }
+
+    try {
+      final results = await Future.wait([
+        _nlpService.predict(ModelType.sentiment, text),
+        _nlpService.predict(ModelType.spam, text),
+        _nlpService.predict(ModelType.grammatical, text),
+      ]);
+      return results;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Color _getSentimentColor(String sentiment) {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return Colors.green;
+      case 'negative':
+        return Colors.red;
+      case 'neutral':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getSpamColor(String spam) {
+    switch (spam.toLowerCase()) {
+      case 'spam':
+        return Colors.red;
+      case 'ham':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getGrammarColor(String grammar) {
+    switch (grammar.toLowerCase()) {
+      case 'grammatical':
+        return Colors.green;
+      case 'ungrammatical':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildLiveResultChip(NLPResult result) {
+    Color chipColor;
+    switch (result.modelType) {
+      case ModelType.sentiment:
+        chipColor = _getSentimentColor(result.label);
+        break;
+      case ModelType.spam:
+        chipColor = _getSpamColor(result.label);
+        break;
+      case ModelType.grammatical:
+        chipColor = _getGrammarColor(result.label);
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: chipColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: chipColor.withOpacity(0.4)),
+      ),
+      child: Text(
+        '${result.modelType.name}: ${result.label}',
+        style: TextStyle(
+          color: chipColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
 
   void _showAttachmentOptions() {
     showBottomSheet(
@@ -493,6 +666,9 @@ class WhatsAppMessageList extends StatelessWidget {
   final ChatService _chatService;
   final BuildContext context;
   final Community? community;
+  final NLPService nlpService;
+  final bool isNlpInitialized;
+
   const WhatsAppMessageList(
       {super.key,
       required this.recieverUid,
@@ -501,7 +677,9 @@ class WhatsAppMessageList extends StatelessWidget {
       required ChatService chatService,
       required this.context,
       this.community,
-      required this.chatroomid})
+      required this.chatroomid,
+      required this.nlpService,
+      required this.isNlpInitialized})
       : _scrollController = scrollController,
         _auth = auth,
         _chatService = chatService;
@@ -571,21 +749,30 @@ class WhatsAppMessageList extends StatelessWidget {
                               snapshot.data![index] is DocumentSnapshot
                                   ? snapshot.data![index]
                                   : null;
-                          if (document != null) showEditBox(document);
+                          if (document != null) {
+                            showEditBox(document, nlpService, isNlpInitialized);
+                          }
                         },
                         child: snapshot.data![index].runtimeType == FileMessage
                             ? FileMessageBubble(
                                 message: snapshot.data![index],
                                 chatRoomID: chatroomid)
-                            : MessageBubble(
+                            : EnhancedMessageBubble(
                                 message: snapshot.data![index],
-                                chatRoomID: chatroomid)));
+                                chatRoomID: chatroomid,
+                                nlpService: nlpService,
+                                isNlpInitialized: isNlpInitialized,
+                                onEdit: (document) => showEditBox(
+                                    document, nlpService, isNlpInitialized))));
               });
         });
   }
 
-  void showEditBox(DocumentSnapshot document) async {
+  void showEditBox(DocumentSnapshot document, NLPService nlpService,
+      bool nlpInitialized) async {
     TextEditingController textController = TextEditingController();
+    textController.text = document['message'] ?? '';
+
     await showGeneralDialog(
         context: context,
         barrierDismissible: true,
@@ -600,59 +787,77 @@ class WhatsAppMessageList extends StatelessWidget {
                   Tween<double>(begin: 0.8, end: 1.0).animate(curvedAnimation),
               child: FadeTransition(
                   opacity: animation,
-                  child: AlertDialog(
-                      backgroundColor: Colors.grey.shade900,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                      title: const Text('Enter The New Message',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white)),
-                      actions: <Widget>[
-                        TextFormField(
-                            controller: textController,
-                            style: const TextStyle(color: Colors.white),
-                            cursorColor: Colors.teal,
-                            decoration: InputDecoration(
-                                hintText: ' Enter Message Here',
-                                hintStyle:
-                                    TextStyle(color: Colors.grey.shade400),
-                                focusedBorder: const UnderlineInputBorder(
-                                    borderSide:
-                                        BorderSide(color: Colors.white))),
-                            autofocus: true),
-                        const SizedBox(height: 10),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedButton(
-                                onPressed: () async {
-                                  if (textController.text.isNotEmpty) {
-                                    Navigator.of(context).pop();
-                                    try {
-                                      await FirebaseFirestore.instance
-                                          .collection('chat_Rooms')
-                                          .doc(chatroomid)
-                                          .collection('messages')
-                                          .doc(document.id)
-                                          .update({
-                                        'message': textController.text,
-                                        'type': 'text',
-                                        'edit': true
-                                      });
-                                    } catch (e) {
-                                      print(e);
-                                    }
-                                  }
-                                },
-                                child: Text('Done',
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        color: Colors.teal.shade500)),
-                              )
-                            ])
-                      ])));
+                  child: StatefulBuilder(
+                      builder: (context, setState) => AlertDialog(
+                              backgroundColor: Colors.grey.shade900,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              title: const Text('Edit Message',
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextFormField(
+                                      controller: textController,
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                      cursorColor: Colors.teal,
+                                      maxLines: null,
+                                      decoration: InputDecoration(
+                                          hintText: 'Enter Message Here',
+                                          hintStyle: TextStyle(
+                                              color: Colors.grey.shade400),
+                                          focusedBorder:
+                                              const UnderlineInputBorder(
+                                                  borderSide: BorderSide(
+                                                      color: Colors.white))),
+                                      autofocus: true),
+                                  const SizedBox(height: 16),
+                                ],
+                              ),
+                              actions: <Widget>[
+                                Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      AnimatedButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: Text('Cancel',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.grey.shade400)),
+                                      ),
+                                      AnimatedButton(
+                                        onPressed: () async {
+                                          if (textController.text.isNotEmpty) {
+                                            Navigator.of(context).pop();
+                                            try {
+                                              await FirebaseFirestore.instance
+                                                  .collection('chat_Rooms')
+                                                  .doc(chatroomid)
+                                                  .collection('messages')
+                                                  .doc(document.id)
+                                                  .update({
+                                                'message': textController.text,
+                                                'type': 'text',
+                                                'edit': true
+                                              });
+                                            } catch (e) {
+                                              print(e);
+                                            }
+                                          }
+                                        },
+                                        child: Text('Save',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.teal.shade500)),
+                                      )
+                                    ])
+                              ]))));
         });
   }
 }

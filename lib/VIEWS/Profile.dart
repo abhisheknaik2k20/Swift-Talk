@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:SwiftTalk/CONTROLLER/Call_Provider.dart';
-import 'package:SwiftTalk/CONTROLLER/Chat_Service.dart';
-import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
-import 'package:SwiftTalk/VIEWS/Call_Screen.dart';
+import 'package:swift_talk/CONTROLLER/Call_Provider.dart';
+import 'package:swift_talk/CONTROLLER/Chat_Service.dart';
+import 'package:swift_talk/CONTROLLER/Native_Implement.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/MODELS/User.dart';
+import 'package:swift_talk/VIEWS/Call_Screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,7 +13,7 @@ import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
-import 'package:SwiftTalk/MODELS/Community.dart';
+import 'package:swift_talk/MODELS/Community.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? UserUID;
@@ -1009,7 +1009,7 @@ class _ProfilePageState extends State<ProfilePage>
                                   const SizedBox(height: 8),
                                   Text(
                                       user!.description ??
-                                          "Hey there, I'm using SwiftTalk",
+                                          "Hey there, I'm using swift_talk",
                                       style: TextStyle(
                                           fontSize: 16, color: textColor))
                                 ]))

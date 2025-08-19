@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:SwiftTalk/CONTROLLER/WebRTCLogic.dart';
+import 'package:swift_talk/CONTROLLER/WebRTCLogic.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});

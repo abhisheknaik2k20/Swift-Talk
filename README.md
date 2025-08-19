@@ -1,4 +1,4 @@
-# SwiftTalk 💬
+# swift_talk 💬
 
 A modern, feature-rich messaging application built with Flutter that combines real-time chat, video calling, and AI-powered conversations in one seamless experience.
 
@@ -230,4 +230,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-For support, email support@swifttalk.com or join our community Discord server.
+For support, email support@swift_talk.com or join our community Discord server.

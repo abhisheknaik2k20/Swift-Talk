@@ -1,4 +1,4 @@
-import 'package:SwiftTalk/CONTROLLER/Login_Logic.dart';
+import 'package:swift_talk/CONTROLLER/Login_Logic.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

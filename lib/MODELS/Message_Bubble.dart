@@ -1,15 +1,26 @@
-import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
-import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
+import 'package:swift_talk/CONTROLLER/Native_Implement.dart';
+import 'package:swift_talk/CONTROLLER/NotificationService.dart';
+import 'package:swift_talk/CONTROLLER/nlp_models.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'dart:math';
-import 'package:SwiftTalk/MODELS/Message.dart';
+import 'package:swift_talk/MODELS/Message.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+final Map<String, String> correctLabels = {
+  "grammatical": "Grammatical",
+  "ungrammatical": "Un-Grammatical",
+  "negative": "Negative",
+  "neutral": "Neutral",
+  "positive": "Positive",
+  "ham": "Non-Spam",
+  "spam": "Spam",
+};
 
 final Map<String, List> mediaConfig = {
   'Video': [
@@ -607,5 +618,664 @@ class FileMessageBubble extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error opening file: ${error.toString()}')));
     }
+  }
+}
+
+// Enhanced Message Bubble with NLP Analysis
+class EnhancedMessageBubble extends StatefulWidget {
+  final Message message;
+  final String chatRoomID;
+  final NLPService nlpService;
+  final bool isNlpInitialized;
+  final Function(DocumentSnapshot) onEdit;
+
+  const EnhancedMessageBubble({
+    super.key,
+    required this.message,
+    required this.chatRoomID,
+    required this.nlpService,
+    required this.isNlpInitialized,
+    required this.onEdit,
+  });
+
+  @override
+  State<EnhancedMessageBubble> createState() => _EnhancedMessageBubbleState();
+}
+
+class _EnhancedMessageBubbleState extends State<EnhancedMessageBubble> {
+  NLPResult? _sentimentResult;
+  NLPResult? _spamResult;
+  NLPResult? _grammaticalResult;
+  bool _showAnalysis = false;
+  bool _isAnalyzing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isNlpInitialized && widget.message.type == 'text') {
+      _performAnalysis();
+    }
+  }
+
+  Future<void> _performAnalysis() async {
+    if (!widget.isNlpInitialized || widget.message.message.trim().isEmpty) {
+      return;
+    }
+    setState(() => _isAnalyzing = true);
+    try {
+      final results = await Future.wait([
+        widget.nlpService.predict(ModelType.sentiment, widget.message.message),
+        widget.nlpService.predict(ModelType.spam, widget.message.message),
+        widget.nlpService
+            .predict(ModelType.grammatical, widget.message.message),
+      ]);
+      setState(() {
+        _sentimentResult = results[0];
+        _spamResult = results[1];
+        _grammaticalResult = results[2];
+        _isAnalyzing = false;
+      });
+    } catch (e) {
+      setState(() => _isAnalyzing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bool isCurrentUser =
+        widget.message.senderId == FirebaseAuth.instance.currentUser!.uid;
+    final String formattedTime =
+        CustomDateFormat.formatDateTime(widget.message.timestamp.toDate());
+    final bubbleColorUser =
+        isDarkMode ? Colors.teal.shade800 : Colors.teal.shade100;
+    final bubbleColorOther = isDarkMode ? Colors.grey.shade800 : Colors.white;
+    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final shadowColor =
+        isDarkMode ? Colors.black.withOpacity(0.5) : Colors.grey.shade300;
+    final timeColor = isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600;
+    return GestureDetector(
+      onLongPress: () {
+        HapticFeedback.heavyImpact();
+        _showEnhancedBottomSheet(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment:
+              isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
+              ),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isCurrentUser ? bubbleColorUser : bubbleColorOther,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: isCurrentUser
+                      ? const Radius.circular(20)
+                      : const Radius.circular(5),
+                  bottomRight: isCurrentUser
+                      ? const Radius.circular(5)
+                      : const Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor,
+                    blurRadius: 2,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.message.message,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        formattedTime,
+                        style: TextStyle(
+                          color: timeColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (_hasAnalysisResults())
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showAnalysis = !_showAnalysis;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.analytics,
+                              size: 14,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ),
+                      if (_isAnalyzing)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          child: SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                timeColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_showAnalysis && _hasAnalysisResults())
+              _buildAnalysisCard(isDarkMode),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _hasAnalysisResults() =>
+      _sentimentResult != null ||
+      _spamResult != null ||
+      _grammaticalResult != null;
+
+  Widget _buildAnalysisCard(bool isDarkMode) => Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.all(8),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.blue.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Text Analysis',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 4),
+            if (_sentimentResult != null)
+              _buildAnalysisRow(
+                'Sentiment',
+                _sentimentResult!.label,
+                _sentimentResult!.confidence,
+                _getSentimentColor(_sentimentResult!.label),
+                isDarkMode,
+              ),
+            if (_spamResult != null)
+              _buildAnalysisRow(
+                'Spam Detection',
+                _spamResult!.label,
+                _spamResult!.confidence,
+                _getSpamColor(_spamResult!.label),
+                isDarkMode,
+              ),
+            if (_grammaticalResult != null)
+              _buildAnalysisRow(
+                'Grammar',
+                _grammaticalResult!.label,
+                _grammaticalResult!.confidence,
+                _getGrammarColor(_grammaticalResult!.label),
+                isDarkMode,
+              ),
+          ],
+        ),
+      );
+
+  Widget _buildAnalysisRow(String type, String result, double confidence,
+          Color color, bool isDarkMode) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '$type: $result (${(confidence * 100).toStringAsFixed(1)}%)',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Color _getSentimentColor(String sentiment) {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return Colors.green;
+      case 'negative':
+        return Colors.red;
+      case 'neutral':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getSpamColor(String spam) {
+    switch (spam.toLowerCase()) {
+      case 'spam':
+        return Colors.red;
+      case 'ham':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getGrammarColor(String grammar) {
+    switch (grammar.toLowerCase()) {
+      case 'grammatical':
+        return Colors.green;
+      case 'ungrammatical':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  void _showEnhancedBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EnhancedMessageOptionsBottomSheet(
+        message: widget.message,
+        chatRoomID: widget.chatRoomID,
+        onEdit: widget.onEdit,
+        sentimentResult: _sentimentResult,
+        spamResult: _spamResult,
+        grammaticalResult: _grammaticalResult,
+        onAnalyze: () => _performAnalysis(),
+        canAnalyze: widget.isNlpInitialized,
+      ),
+    );
+  }
+}
+
+// Enhanced Bottom Sheet for Message Options
+class EnhancedMessageOptionsBottomSheet extends StatelessWidget {
+  final Message message;
+  final String chatRoomID;
+  final Function(DocumentSnapshot) onEdit;
+  final NLPResult? sentimentResult;
+  final NLPResult? spamResult;
+  final NLPResult? grammaticalResult;
+  final VoidCallback onAnalyze;
+  final bool canAnalyze;
+
+  const EnhancedMessageOptionsBottomSheet({
+    super.key,
+    required this.message,
+    required this.chatRoomID,
+    required this.onEdit,
+    this.sentimentResult,
+    this.spamResult,
+    this.grammaticalResult,
+    required this.onAnalyze,
+    required this.canAnalyze,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bool isCurrentUser =
+        message.senderId == FirebaseAuth.instance.currentUser!.uid;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey.shade800 : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Message content
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.message,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'From: ${message.senderName}',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white70 : Colors.black54,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (sentimentResult != null ||
+              spamResult != null ||
+              grammaticalResult != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildDetailedAnalysis(isDarkMode),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                _buildActionChip(
+                  context,
+                  Icons.copy,
+                  'Copy',
+                  Colors.green,
+                  () {
+                    Clipboard.setData(ClipboardData(text: message.message));
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Message copied!')),
+                    );
+                  },
+                ),
+                if (isCurrentUser)
+                  _buildActionChip(
+                    context,
+                    Icons.edit,
+                    'Edit',
+                    Colors.orange,
+                    () {
+                      Navigator.pop(context);
+                      // Create a mock DocumentSnapshot for editing
+                      // Note: This is a simplified approach - in production you'd need proper DocumentSnapshot
+                      // onEdit(documentSnapshot);
+                    },
+                  ),
+                if (isCurrentUser)
+                  _buildActionChip(
+                    context,
+                    Icons.delete,
+                    'Delete',
+                    Colors.red,
+                    () => _showDeleteConfirmation(context),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedAnalysis(bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey.shade700 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.blue.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics,
+                size: 16,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Detailed Analysis',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (sentimentResult != null) ...[
+            _buildDetailedResultRow(
+              'Sentiment Analysis',
+              sentimentResult!,
+              isDarkMode,
+            ),
+            const SizedBox(height: 4),
+          ],
+          if (spamResult != null) ...[
+            _buildDetailedResultRow(
+              'Spam Detection',
+              spamResult!,
+              isDarkMode,
+            ),
+            const SizedBox(height: 4),
+          ],
+          if (grammaticalResult != null) ...[
+            _buildDetailedResultRow(
+              'Grammar Check',
+              grammaticalResult!,
+              isDarkMode,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedResultRow(
+      String title, NLPResult result, bool isDarkMode) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getResultColor(result).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                result.label.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: _getResultColor(result),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${(result.confidence * 100).toStringAsFixed(1)}% confidence',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDarkMode ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Color _getResultColor(NLPResult result) {
+    switch (result.modelType) {
+      case ModelType.sentiment:
+        switch (result.label.toLowerCase()) {
+          case 'positive':
+            return Colors.green;
+          case 'negative':
+            return Colors.red;
+          default:
+            return Colors.orange;
+        }
+      case ModelType.spam:
+        return result.label.toLowerCase() == 'spam' ? Colors.red : Colors.green;
+      case ModelType.grammatical:
+        return result.label.toLowerCase() == 'grammatical'
+            ? Colors.green
+            : Colors.orange;
+    }
+  }
+
+  Widget _buildActionChip(BuildContext context, IconData icon, String label,
+      Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Message'),
+        content: const Text('Are you sure you want to delete this message?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close confirmation dialog
+              Navigator.pop(context); // Close bottom sheet
+
+              try {
+                // Delete message from Firestore
+                await FirebaseFirestore.instance
+                    .collection('chat_Rooms')
+                    .doc(chatRoomID)
+                    .collection('messages')
+                    .where('senderId', isEqualTo: message.senderId)
+                    .where('message', isEqualTo: message.message)
+                    .where('timestamp', isEqualTo: message.timestamp)
+                    .get()
+                    .then((querySnapshot) {
+                  for (var doc in querySnapshot.docs) {
+                    doc.reference.delete();
+                  }
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Message deleted')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting message: $e')),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }

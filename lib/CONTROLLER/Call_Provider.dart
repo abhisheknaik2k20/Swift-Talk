@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/MODELS/User.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

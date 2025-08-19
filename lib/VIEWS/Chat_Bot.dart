@@ -1,11 +1,11 @@
-import 'package:SwiftTalk/MODELS/Message.dart';
+import 'package:swift_talk/MODELS/Message.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'dart:io';
-import 'package:SwiftTalk/API_KEYS.dart';
+import 'package:swift_talk/API_KEYS.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 

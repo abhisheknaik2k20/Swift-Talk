@@ -20,6 +20,10 @@
             "package_name": "com.myprojectapp.projectx",
             "certificate_hash": "be3a003db3473e25a6a2fb7d3c682b7e6b45429d"
           }
+        },
+        {
+          "client_id": "53607531902-gbjou515n7afq3ll6le2481h53ecpvjp.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -29,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "53607531902-gbjou515n7afq3ll6le2481h53ecpvjp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

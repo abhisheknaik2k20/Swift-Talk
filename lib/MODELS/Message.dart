@@ -2,6 +2,59 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+class MessageAnalysis {
+  final String sentiment;
+  final double sentimentConfidence;
+  final bool isSpam;
+  final double spamConfidence;
+  final bool isGrammatical;
+  final double grammaticalConfidence;
+  final Map<String, double> sentimentScores;
+  final Map<String, double> spamScores;
+  final Map<String, double> grammaticalScores;
+
+  const MessageAnalysis({
+    required this.sentiment,
+    required this.sentimentConfidence,
+    required this.isSpam,
+    required this.spamConfidence,
+    required this.isGrammatical,
+    required this.grammaticalConfidence,
+    required this.sentimentScores,
+    required this.spamScores,
+    required this.grammaticalScores,
+  });
+
+  factory MessageAnalysis.fromMap(Map<String, dynamic> map) {
+    return MessageAnalysis(
+      sentiment: map['sentiment'] ?? 'neutral',
+      sentimentConfidence: (map['sentimentConfidence'] ?? 0.0).toDouble(),
+      isSpam: map['isSpam'] ?? false,
+      spamConfidence: (map['spamConfidence'] ?? 0.0).toDouble(),
+      isGrammatical: map['isGrammatical'] ?? true,
+      grammaticalConfidence: (map['grammaticalConfidence'] ?? 0.0).toDouble(),
+      sentimentScores: Map<String, double>.from(map['sentimentScores'] ?? {}),
+      spamScores: Map<String, double>.from(map['spamScores'] ?? {}),
+      grammaticalScores:
+          Map<String, double>.from(map['grammaticalScores'] ?? {}),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'sentiment': sentiment,
+      'sentimentConfidence': sentimentConfidence,
+      'isSpam': isSpam,
+      'spamConfidence': spamConfidence,
+      'isGrammatical': isGrammatical,
+      'grammaticalConfidence': grammaticalConfidence,
+      'sentimentScores': sentimentScores,
+      'spamScores': spamScores,
+      'grammaticalScores': grammaticalScores,
+    };
+  }
+}
+
 class Message {
   String? id;
   final String senderName;
@@ -11,6 +64,7 @@ class Message {
   final String message;
   final Timestamp timestamp;
   final String type;
+  final MessageAnalysis? analysis;
 
   Message(
       {this.id,
@@ -20,7 +74,8 @@ class Message {
       required this.receiverId,
       required this.message,
       required this.timestamp,
-      required this.type});
+      required this.type,
+      this.analysis});
 
   factory Message.fromMap(Map<String, dynamic> map, String docId) {
     return Message(
@@ -31,7 +86,11 @@ class Message {
         receiverId: map['reciverId'] ?? '',
         message: map['message'] ?? '',
         timestamp: map['timestamp'],
-        type: map['type'] ?? 'text');
+        type: map['type'] ?? 'text',
+        analysis: map['analysis'] != null
+            ? MessageAnalysis.fromMap(
+                Map<String, dynamic>.from(map['analysis']))
+            : null);
   }
 
   Map<String, dynamic> toMap() {

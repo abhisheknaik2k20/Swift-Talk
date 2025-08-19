@@ -58,11 +58,11 @@ class NLPModel {
     required Map<String, int> wordIndex,
     required int maxLength,
     required int numWords,
-  }) : _interpreter = interpreter,
-       _labels = labels,
-       _wordIndex = wordIndex,
-       _maxLength = maxLength,
-       _numWords = numWords;
+  })  : _interpreter = interpreter,
+        _labels = labels,
+        _wordIndex = wordIndex,
+        _maxLength = maxLength,
+        _numWords = numWords;
 
   static Future<NLPModel> _create(ModelType type) async {
     final [interpreter, labels, tokenizer] = await Future.wait([
@@ -75,8 +75,8 @@ class NLPModel {
     final wordIndex = tokenizerMap.containsKey('word_index')
         ? Map<String, int>.from(tokenizerMap['word_index'])
         : tokenizerMap.isNotEmpty
-        ? Map<String, int>.from(tokenizerMap)
-        : <String, int>{};
+            ? Map<String, int>.from(tokenizerMap)
+            : <String, int>{};
 
     return NLPModel._(
       type: type,
@@ -120,10 +120,10 @@ class NLPModel {
   }
 
   List<int> _textToSequence(String text) => text.split(' ').map((word) {
-    final index = _wordIndex[word];
-    if (index != null) return index < _numWords ? index : 1;
-    return (word.hashCode.abs() % (_numWords - 2)) + 2;
-  }).toList();
+        final index = _wordIndex[word];
+        if (index != null) return index < _numWords ? index : 1;
+        return (word.hashCode.abs() % (_numWords - 2)) + 2;
+      }).toList();
 
   List<int> _padSequence(List<int> sequence) => sequence.length >= _maxLength
       ? sequence.take(_maxLength).toList()
@@ -184,26 +184,4 @@ class NLPResult {
     required this.originalText,
     required this.cleanedText,
   });
-
-  bool get isPositive => _checkLabel('positive', ModelType.sentiment);
-  bool get isNegative => _checkLabel('negative', ModelType.sentiment);
-  bool get isSpam => _checkLabel('spam', ModelType.spam);
-  bool get isHam => _checkLabel('ham', ModelType.spam);
-  bool get isGrammatical => _checkLabel('grammatical', ModelType.grammatical);
-  bool get isUngrammatical =>
-      _checkLabel('ungrammatical', ModelType.grammatical);
-
-  bool _checkLabel(String expected, ModelType expectedType) =>
-      modelType == expectedType && label.toLowerCase() == expected;
-
-  bool get isNeutral {
-    if (allScores.length < 2) return false;
-    final sortedScores = allScores.values.toList()
-      ..sort((a, b) => b.compareTo(a));
-    return (sortedScores[0] - sortedScores[1]) < 0.1;
-  }
-
-  @override
-  String toString() =>
-      'NLPResult(${modelType.name}: $label, confidence: ${confidence.toStringAsFixed(3)})';
 }

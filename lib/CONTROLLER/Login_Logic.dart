@@ -1,7 +1,7 @@
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
 
 class AuthLoadingProvider extends ChangeNotifier {
   bool _isLoading = false;

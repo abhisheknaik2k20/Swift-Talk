@@ -1,17 +1,17 @@
 // ignore_for_file:
 import 'dart:io';
-import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
-import 'package:SwiftTalk/MODELS/Community.dart';
-import 'package:SwiftTalk/MODELS/Message.dart';
-import 'package:SwiftTalk/MODELS/Notification.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
-import 'package:SwiftTalk/VIEWS/WebRTC.dart';
+import 'package:swift_talk/CONTROLLER/NotificationService.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/MODELS/Community.dart';
+import 'package:swift_talk/MODELS/Message.dart';
+import 'package:swift_talk/MODELS/Notification.dart';
+import 'package:swift_talk/MODELS/User.dart';
+import 'package:swift_talk/VIEWS/WebRTC.dart';
 import 'package:aws_storage_service/aws_storage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:SwiftTalk/API_KEYS.dart';
+import 'package:swift_talk/API_KEYS.dart';
 import 'package:path/path.dart' as path;
 
 class ChatService extends ChangeNotifier {

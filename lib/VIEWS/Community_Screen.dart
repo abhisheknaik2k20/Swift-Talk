@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'package:SwiftTalk/CONTROLLER/Chat_Service.dart';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
-import 'package:SwiftTalk/MODELS/Community.dart';
-import 'package:SwiftTalk/MODELS/User.dart';
-import 'package:SwiftTalk/VIEWS/Chat_Screen.dart';
-import 'package:SwiftTalk/VIEWS/Status_Preview.dart';
+import 'package:swift_talk/CONTROLLER/Chat_Service.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/MODELS/Community.dart';
+import 'package:swift_talk/MODELS/User.dart';
+import 'package:swift_talk/VIEWS/Chat_Screen.dart';
+import 'package:swift_talk/VIEWS/Status_Preview.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

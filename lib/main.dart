@@ -1,15 +1,15 @@
-import 'package:SwiftTalk/CONTROLLER/Call_Provider.dart';
-import 'package:SwiftTalk/CONTROLLER/Login_Logic.dart';
-import 'package:SwiftTalk/CONTROLLER/Native_Implement.dart';
-import 'package:SwiftTalk/CONTROLLER/NotificationService.dart';
-import 'package:SwiftTalk/CONTROLLER/User_Repository.dart';
+import 'package:swift_talk/CONTROLLER/Call_Provider.dart';
+import 'package:swift_talk/CONTROLLER/Login_Logic.dart';
+import 'package:swift_talk/CONTROLLER/Native_Implement.dart';
+import 'package:swift_talk/CONTROLLER/NotificationService.dart';
+import 'package:swift_talk/CONTROLLER/User_Repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:SwiftTalk/firebase_options.dart';
-import 'package:SwiftTalk/VIEWS/BlackScreen.dart';
-import 'package:SwiftTalk/VIEWS/Login_Screen.dart';
+import 'package:swift_talk/firebase_options.dart';
+import 'package:swift_talk/VIEWS/BlackScreen.dart';
+import 'package:swift_talk/VIEWS/Login_Screen.dart';
 import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
 
@@ -134,7 +134,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) => Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) => MaterialApp(
             navigatorKey: navigatorKey,
-            title: 'SwiftTalk',
+            title: 'swift_talk',
             theme: themeProvider.currentTheme,
             debugShowCheckedModeBanner: false,
             home: Consumer<AuthLoadingProvider>(

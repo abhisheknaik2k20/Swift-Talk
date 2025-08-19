@@ -1,14 +1,14 @@
-import 'package:SwiftTalk/CONTROLLER/Call_Provider.dart';
-import 'package:SwiftTalk/VIEWS/Community_Screen.dart';
-import 'package:SwiftTalk/main.dart';
+import 'package:swift_talk/CONTROLLER/Call_Provider.dart';
+import 'package:swift_talk/VIEWS/Community_Screen.dart';
+import 'package:swift_talk/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:SwiftTalk/VIEWS/Call_Screen.dart';
-import 'package:SwiftTalk/VIEWS/NotificationPage.dart';
-import 'package:SwiftTalk/VIEWS/Profile.dart';
-import 'package:SwiftTalk/VIEWS/Chat_Bot.dart';
-import 'package:SwiftTalk/VIEWS/First_Screen.dart';
+import 'package:swift_talk/VIEWS/Call_Screen.dart';
+import 'package:swift_talk/VIEWS/NotificationPage.dart';
+import 'package:swift_talk/VIEWS/Profile.dart';
+import 'package:swift_talk/VIEWS/Chat_Bot.dart';
+import 'package:swift_talk/VIEWS/First_Screen.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 
